@@ -3,13 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>랜덤 조 편성기</title>
-  <meta name="description" content="이름 목록과 조별 인원수를 넣으면, 한 번에 랜덤으로 팀을 만들어줍니다. (예: 4,4,3)" />
 
-  <!-- (선택) Google AdSense 자동광고: 추후 승인 후 아래 코드의 주석 해제
-  <meta name="google-adsense-account" content="ca-pub-xxxxxxxxxxxxxxxx">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx" crossorigin="anonymous"></script>
-  -->
+  <title>랜덤 조 편성기 | 무료 팀 구성 도구</title>
+  <meta name="description" content="무료로 팀이나 조를 랜덤하게 나눠주는 간단한 웹 도구입니다. 이름을 입력하고 조별 인원을 지정하면 자동으로 팀이 만들어집니다." />
+  <meta name="keywords" content="랜덤조편성, 팀나누기, 그룹생성, 조편성기, 랜덤팀, 무료도구" />
+  <meta name="author" content="홍길동" />
+  <meta http-equiv="Content-Language" content="ko" />
+  <link rel="canonical" href="https://yourname.github.io/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="랜덤 조 편성기 | 무료 팀 구성 도구" />
+  <meta property="og:description" content="이름만 넣으면 자동으로 팀을 랜덤으로 나눠주는 웹 도구입니다." />
+  <meta property="og:url" content="https://yourname.github.io/" />
+  <meta property="og:image" content="https://yourname.github.io/og-image.png" />
+  <meta property="og:locale" content="ko_KR" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="랜덤 조 편성기 | 무료 팀 구성 도구" />
+  <meta name="twitter:description" content="이름만 넣으면 자동으로 팀을 랜덤으로 나눠주는 웹 도구입니다." />
+  <meta name="twitter:image" content="https://yourname.github.io/og-image.png" />
+
+  <!-- 구조화 데이터 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "랜덤 조 편성기",
+    "url": "https://yourname.github.io/",
+    "description": "무료로 팀이나 조를 랜덤하게 나눠주는 간단한 웹 도구입니다.",
+    "inLanguage": "ko"
+  }
+  </script>
 
   <style>
     :root {
@@ -75,9 +101,6 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 4px rgba(122,162,255,.15);
     }
-    .row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    }
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
       gap: 8px; width: 100%;
@@ -115,15 +138,6 @@
     ul { margin: 0; padding-left: 18px; }
     .muted { color: var(--muted); font-size: 14px; }
     footer { margin: 28px 0 12px; text-align: center; color: var(--muted); font-size: 13px; }
-    .ads-slot {
-      margin: 22px 0;
-      border: 1px dashed var(--border);
-      border-radius: 12px;
-      padding: 10px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-    }
   </style>
 </head>
 <body>
@@ -152,24 +166,16 @@
 하람"></textarea>
         </div>
 
-        <div class="row" style="margin-bottom:12px">
-          <div>
-            <label for="groupSizes">조별 인원수</label>
-            <input id="groupSizes" type="text" placeholder="예: 4,4,3" />
-          </div>
-          <div>
-            <label for="seed">고급(선택): 시드</label>
-            <input id="seed" type="text" placeholder="동일 결과를 재현하고 싶을 때" />
-          </div>
+        <div style="margin-bottom:12px">
+          <label for="groupSizes">조별 인원수</label>
+          <input id="groupSizes" type="text" placeholder="예: 4,4,3" />
         </div>
 
-        <div class="row">
+        <div style="display: flex; gap: 12px;">
           <button class="btn" id="makeBtn">조 편성하기</button>
           <button class="btn secondary" id="copyBtn">결과 복사</button>
         </div>
         <div id="error" class="error">입력을 확인해주세요.</div>
-
-        <!-- (선택) 광고 영역 예시 슬롯 -->
       </section>
 
       <!-- 결과 영역 -->
@@ -185,47 +191,8 @@
   </div>
 
   <script>
-    // 유틸: 시드 기반 난수(재현 가능 랜덤)
-    function mulberry32(a) {
-      return function() {
-        let t = a += 0x6D2B79F5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-      }
-    }
-    function seededShuffle(array, seedStr) {
-      if (!seedStr) {
-        // 기본: 크립토 > Math.random fallback
-        const rand = window.crypto && crypto.getRandomValues ? () => {
-          const u32 = new Uint32Array(1); crypto.getRandomValues(u32);
-          return u32[0] / 2**32;
-        } : Math.random;
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(rand() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      }
-      // 시드 문자열을 숫자로 해시
-      let h = 2166136261 >>> 0;
-      for (let i = 0; i < seedStr.length; i++) {
-        h ^= seedStr.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-      }
-      const rng = mulberry32(h >>> 0);
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-
     function parseNames(text) {
-      return text
-        .split(/\n|,/)
-        .map(s => s.trim())
-        .filter(Boolean);
+      return text.split(/\n|,/).map(s => s.trim()).filter(Boolean);
     }
     function parseGroupSizes(text) {
       const arr = text.split(",").map(s => parseInt(s.trim(), 10));
@@ -250,7 +217,6 @@
     function makeTeams() {
       const namesInput = document.getElementById("names").value.trim();
       const sizesInput = document.getElementById("groupSizes").value.trim();
-      const seed = document.getElementById("seed").value.trim();
       const errorEl = document.getElementById("error");
       const resultEl = document.getElementById("result");
 
@@ -270,19 +236,23 @@
         return;
       }
 
-      const shuffled = seededShuffle([...names], seed);
+      // 이름 랜덤 섞기
+      for (let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+      }
+
       const teams = [];
       let idx = 0;
       for (const sz of sizes) {
-        teams.push(shuffled.slice(idx, idx + sz));
+        teams.push(names.slice(idx, idx + sz));
         idx += sz;
       }
-      if (idx < shuffled.length) {
-        // 남는 인원은 마지막 팀에 합치기(필요 시 로직 변경)
-        teams[teams.length - 1] = teams[teams.length - 1].concat(shuffled.slice(idx));
+      if (idx < names.length) {
+        teams[teams.length - 1] = teams[teams.length - 1].concat(names.slice(idx));
       }
+
       renderTeams(resultEl, teams);
-      // 결과 텍스트 저장(복사용)
       window.__lastTeamsText = teams.map((t,i)=>`[팀 ${i+1} - ${t.length}명]\n`+t.map(n=>`- ${n}`).join("\n")).join("\n\n");
     }
 
@@ -302,15 +272,5 @@
     document.getElementById("copyBtn").addEventListener("click", copyResult);
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
-
-  <!-- (선택) 개별 광고 유닛을 쓰고 싶다면, 승인 후 본문 적당한 위치에 이런 블록을 배치
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-       data-ad-slot="1234567890"
-       data-ad-format="auto"
-       data-full-width-responsive="true"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  -->
 </body>
 </html>
